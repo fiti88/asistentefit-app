@@ -1,0 +1,22 @@
+
+{
+  "id": "/",
+  "name": "AsistenteFit",
+  "short_name": "AsistenteFit",
+  "description": "Nutrición, actividad física y seguimiento personal",
+  "lang": "es-CL",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f1f6f2",
+  "theme_color": "#12372b",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
