@@ -1,0 +1,520 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#12372b">
+<link rel="manifest" href="./manifest.json">
+<link rel="icon" href="./icon.svg" type="image/svg+xml">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="AsistenteFit">
+<title>AsistenteFit</title>
+<style>
+:root{--green:#176b4b;--dark:#12372b;--bg:#f1f6f2;--card:#fff;--muted:#718078;--line:#dce7df}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:#17251e;font-family:Arial,sans-serif;padding-bottom:75px}
+header{background:var(--dark);color:white;padding:18px;position:sticky;top:0;z-index:5}
+header h1{margin:0;font-size:23px}
+header small{color:#c6ddd0}
+main{max-width:850px;margin:auto;padding:12px}
+.page{display:none}.page.active{display:block}
+nav{position:fixed;bottom:0;left:0;right:0;background:white;border-top:1px solid var(--line);display:flex;overflow-x:auto;z-index:10}
+nav button{flex:1;min-width:65px;border:0;background:white;padding:9px 3px;color:#68766e;font-size:11px}
+nav button b{display:block;font-size:19px;margin-bottom:3px}
+nav button.active{color:var(--green);font-weight:bold}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:12px}
+h2{font-size:17px;margin:0 0 12px}
+h3{font-size:14px;margin:14px 0 7px}
+label{display:block;font-size:12px;font-weight:bold;margin:10px 0 5px}
+input,select,textarea{width:100%;padding:11px;border:1px solid #cbd9ce;border-radius:9px;font:inherit;background:white}
+textarea{min-height:80px}
+button{cursor:pointer}
+.primary,.secondary,.danger{border:0;border-radius:9px;padding:11px;font-weight:bold}
+.primary{background:var(--green);color:white;width:100%;margin-top:10px}
+.secondary{background:#e5f2e9;color:#15583d}
+.danger{background:#fae6e6;color:#a52e2e}
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:9px}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.stat{background:#f2f8f3;border-radius:10px;padding:11px}
+.stat small{display:block;color:var(--muted);font-size:11px}
+.stat strong{display:block;font-size:19px;margin-top:4px}
+.muted{color:var(--muted);font-size:12px;line-height:1.5}
+.row{display:flex;gap:8px;align-items:center}
+.row>*{flex:1}
+.item{display:flex;justify-content:space-between;gap:8px;padding:9px 0;border-bottom:1px solid var(--line);font-size:13px}
+.item:last-child{border:0}
+.bar{height:8px;background:#e2ece5;border-radius:20px;overflow:hidden;margin-top:6px}
+.bar span{display:block;height:100%;background:var(--green)}
+.notice{background:#fff5df;color:#755a22;border-radius:9px;padding:10px;font-size:12px;line-height:1.5}
+.calendar{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.day{background:white;border:1px solid var(--line);border-radius:7px;min-height:48px;padding:5px 1px;font-size:12px}
+.day.selected{outline:2px solid var(--green);background:#e7f4eb}
+.day.empty{border:0;background:transparent}
+.dot{display:block;color:var(--green);font-size:9px}
+.hidden{display:none}
+hr{border:0;border-top:1px solid var(--line);margin:12px 0}
+@media(min-width:650px){main{padding:20px}}
+</style>
+</head>
+<body>
+<header>
+<h1>AsistenteFit</h1>
+<small>Nutrición · Actividad · Seguimiento · Progreso</small>
+</header>
+
+<main>
+
+<section id="inicio" class="page active">
+<div class="card">
+<h2>Resumen de hoy <span id="fechaHoy"></span></h2>
+<div class="grid">
+<div class="stat"><small>Calorías consumidas</small><strong id="kcalHoy">0</strong><small id="metaKcal">Meta diaria</small><div class="bar"><span id="barraKcal"></span></div></div>
+<div class="stat"><small>Proteínas</small><strong id="protHoy">0 g</strong></div>
+<div class="stat"><small>Pasos</small><strong id="pasosHoy">0</strong><small id="kmHoy">0 km</small></div>
+<div class="stat"><small>Ejercicio</small><strong id="minHoy">0 min</strong><small id="gastoHoy">0 kcal estimadas</small></div>
+</div>
+</div>
+<div class="card">
+<h2>Macronutrientes</h2>
+<div id="macrosHoy" class="muted">Sin registros.</div>
+</div>
+<div class="card">
+<h2>Accesos rápidos</h2>
+<div class="grid">
+<button class="secondary" onclick="ir('comidas')">＋ Comida</button>
+<button class="secondary" onclick="ir('actividad')">＋ Ejercicio</button>
+<button class="secondary" onclick="ir('calendario')">Calendario</button>
+<button class="secondary" onclick="ir('informes')">Informes</button>
+</div>
+</div>
+</section>
+
+<section id="comidas" class="page">
+<div class="card">
+<h2>Registrar comida</h2>
+<label>Describe lo que comiste</label>
+<textarea id="textoComida" placeholder="Ej.: 2 huevos, media palta, 150 g de pollo asado con piel, una taza de arroz"></textarea>
+<p class="muted">Puedes escribir cantidades, gramos, unidades, cucharadas, tazas, platos y porciones habituales.</p>
+<button class="primary" onclick="calcularComida()">Calcular alimentos</button>
+<div id="resultadoComida"></div>
+<label>Nombre de la comida</label>
+<input id="nombreComida" placeholder="Desayuno, almuerzo, cena...">
+<button class="primary" id="guardarComida" disabled onclick="guardarComida()">Guardar comida</button>
+</div>
+<div class="card">
+<h2>Comidas registradas hoy</h2>
+<div id="listaComidas"></div>
+</div>
+<div class="card">
+<h2>Base de alimentos</h2>
+<input id="buscarAlimento" placeholder="Buscar alimento..." oninput="buscarAlimentos()">
+<div id="resultadosBusqueda"></div>
+</div>
+<div class="card">
+<h2>Agregar alimento propio</h2>
+<label>Nombre</label><input id="nuevoNombre">
+<div class="grid">
+<div><label>Kcal por 100 g</label><input id="nuevoK" type="number"></div>
+<div><label>Proteína</label><input id="nuevoP" type="number" step=".1"></div>
+<div><label>Carbohidratos</label><input id="nuevoC" type="number" step=".1"></div>
+<div><label>Grasas</label><input id="nuevoG" type="number" step=".1"></div>
+</div>
+<button class="primary" onclick="agregarAlimento()">Añadir a mi base</button>
+</div>
+</section>
+
+<section id="actividad" class="page">
+<div class="card">
+<h2>Contador de pasos</h2>
+<div style="text-align:center;padding:15px">
+<strong id="contadorPasos" style="font-size:42px">0</strong>
+<div class="muted">pasos de hoy</div>
+</div>
+<div class="grid">
+<div class="stat"><small>Distancia</small><strong id="distancia">0 km</strong></div>
+<div class="stat"><small>Gasto estimado</small><strong id="calPasos">0 kcal</strong></div>
+</div>
+<button class="primary" onclick="activarSensor()">Activar sensor de movimiento</button>
+<div class="row">
+<button class="secondary" onclick="pausarSensor()">Pausar sensor</button>
+<button class="secondary" onclick="reiniciarPasos()">Reiniciar</button>
+</div>
+<label>Agregar pasos manualmente</label>
+<div class="row">
+<input type="number" id="pasosManuales" placeholder="Ej. 2500">
+<button class="secondary" onclick="agregarPasos()">Añadir</button>
+</div>
+<p class="notice">El sensor del navegador es experimental y puede dejar de contar al apagar la pantalla o cerrar la aplicación. Para contar pasos durante todo el día se necesita una aplicación Android nativa o integración con Health Connect. También puedes ingresar pasos manualmente.</p>
+</div>
+
+<div class="card">
+<h2>Registrar ejercicio</h2>
+<label>Tipo de actividad</label>
+<select id="tipoEjercicio">
+<option value="3.3">Caminata tranquila</option>
+<option value="4.8">Caminata rápida</option>
+<option value="7.5">Trote</option>
+<option value="9.8">Correr</option>
+<option value="4.5">Fuerza / pesas</option>
+<option value="6.5">Natación</option>
+<option value="7.5">Bicicleta</option>
+<option value="6.5">Trekking / cerro</option>
+<option value="8.8">Escaleras</option>
+<option value="5.5">Baile</option>
+<option value="5.5">Elíptica</option>
+<option value="2.5">Yoga / movilidad</option>
+<option value="4">Otro ejercicio moderado</option>
+</select>
+<div class="grid">
+<div><label>Duración en minutos</label><input id="minutosEjercicio" type="number"></div>
+<div><label>Intensidad</label><select id="intensidad"><option value=".8">Suave</option><option value="1" selected>Moderada</option><option value="1.2">Intensa</option></select></div>
+</div>
+<label>Descripción</label><input id="notaEjercicio" placeholder="Ej. caminata por la playa">
+<div id="calculoEjercicio" class="muted"></div>
+<button class="primary" onclick="guardarEjercicio()">Guardar ejercicio</button>
+</div>
+<div class="card"><h2>Ejercicios de hoy</h2><div id="listaEjercicios"></div></div>
+</section>
+
+<section id="calendario" class="page">
+<div class="card">
+<div class="row">
+<button class="secondary" onclick="cambiarMes(-1)">‹</button>
+<h2 id="tituloMes" style="text-align:center;flex:4"></h2>
+<button class="secondary" onclick="cambiarMes(1)">›</button>
+</div>
+<div class="calendar" id="cuadricula"></div>
+<hr>
+<h3 id="diaSeleccionado"></h3>
+<div id="detalleDia" class="muted"></div>
+</div>
+</section>
+
+<section id="informes" class="page">
+<div class="card">
+<h2>Informe semanal</h2>
+<div class="row">
+<button class="secondary" onclick="moverSemana(-1)">Semana anterior</button>
+<button class="secondary" onclick="moverSemana(0)">Esta semana</button>
+</div>
+<div id="informeSemana"></div>
+</div>
+<div class="card">
+<h2>Informe mensual</h2>
+<div class="row">
+<button class="secondary" onclick="moverInformeMes(-1)">Mes anterior</button>
+<button class="secondary" onclick="moverInformeMes(0)">Este mes</button>
+</div>
+<div id="informeMes"></div>
+</div>
+<div class="card">
+<h2>Días fuertes y débiles</h2>
+<div id="analisisDias" class="muted"></div>
+<p class="notice">Los días sin datos se consideran incompletos, no malos. Los días fuertes y débiles se comparan según las metas que configures.</p>
+</div>
+</section>
+
+<section id="peso" class="page">
+<div class="card">
+<h2>Control de peso</h2>
+<div class="grid">
+<div class="stat"><small>Peso actual</small><strong id="pesoActual">—</strong></div>
+<div class="stat"><small>Objetivo</small><strong id="pesoObjetivo">—</strong></div>
+</div>
+<label>Registrar peso (kg)</label>
+<input id="pesoNuevo" type="number" step=".1">
+<button class="primary" onclick="guardarPeso()">Guardar peso</button>
+<div id="historialPeso"></div>
+</div>
+</section>
+
+<section id="glicemia" class="page">
+<div class="card">
+<h2>Registro de glicemia</h2>
+<label>Valor mg/dL</label><input id="glucosaValor" type="number">
+<label>Momento de medición</label>
+<select id="glucosaMomento">
+<option>En ayunas</option><option>Antes de comer</option>
+<option>30 minutos después de comer</option>
+<option>1 hora después de comer</option>
+<option>2 horas después de comer</option><option>Otro momento</option>
+</select>
+<label>Nota</label><input id="glucosaNota" placeholder="Ej. después del almuerzo">
+<button class="primary" onclick="guardarGlucosa()">Guardar medición</button>
+<div id="historialGlucosa"></div>
+<p class="notice">Este apartado registra mediciones y no realiza diagnósticos ni indica cambios de tratamiento.</p>
+</div>
+</section>
+
+<section id="perfil" class="page">
+<div class="card">
+<h2>Perfil y metas</h2>
+<div class="grid">
+<div><label>Edad</label><input id="edad" type="number"></div>
+<div><label>Sexo</label><select id="sexo"><option value="male">Hombre</option><option value="female">Mujer</option><option value="other">Otro / no indicar</option></select></div>
+<div><label>Altura cm</label><input id="altura" type="number"></div>
+<div><label>Peso kg</label><input id="pesoPerfil" type="number" step=".1"></div>
+<div><label>Peso objetivo kg</label><input id="metaPeso" type="number" step=".1"></div>
+<div><label>Meta calorías</label><input id="metaCalorias" type="number"></div>
+<div><label>Meta proteína g</label><input id="metaProteina" type="number"></div>
+<div><label>Meta pasos</label><input id="metaPasos" type="number"></div>
+<div><label>Longitud paso cm</label><input id="largoPaso" type="number"></div>
+</div>
+<button class="primary" onclick="guardarPerfil()">Guardar perfil</button>
+</div>
+<div class="card">
+<h2>Respaldo</h2>
+<button class="secondary" onclick="exportar()">Exportar mis datos</button>
+<label>Restaurar archivo de respaldo</label>
+<input id="archivoImportar" type="file" accept=".json">
+<button class="primary" onclick="importar()">Importar respaldo</button>
+<button class="danger" onclick="borrarTodo()">Borrar todos los datos</button>
+</div>
+</section>
+
+</main>
+
+<nav>
+<button class="active" data-p="inicio" onclick="ir('inicio')"><b>⌂</b>Inicio</button>
+<button data-p="comidas" onclick="ir('comidas')"><b>🥗</b>Comidas</button>
+<button data-p="actividad" onclick="ir('actividad')"><b>👟</b>Actividad</button>
+<button data-p="calendario" onclick="ir('calendario')"><b>▦</b>Calendario</button>
+<button data-p="informes" onclick="ir('informes')"><b>▤</b>Informes</button>
+<button data-p="peso" onclick="ir('peso')"><b>⚖</b>Peso</button>
+<button data-p="glicemia" onclick="ir('glicemia')"><b>🩸</b>Glicemia</button>
+<button data-p="perfil" onclick="ir('perfil')"><b>☰</b>Perfil</button>
+</nav>
+
+<script>
+const $=id=>document.getElementById(id);
+const hoy=()=>new Date().toLocaleDateString("en-CA");
+const id=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+const base={
+perfil:{edad:38,sexo:"male",altura:187,peso:111,metaPeso:90,metaCalorias:1900,metaProteina:140,metaPasos:8000,largoPaso:75},
+comidas:[],ejercicios:[],pesos:[],glucosas:[],pasos:{fecha:hoy(),cantidad:0},propios:[]
+};
+let datos=leer(),pendiente=null,mesVista=new Date(),diaVista=hoy(),semanaOffset=0,mesInformeOffset=0;
+let sensorActivo=false,ultimoPaso=0,ultimaAceleracion=0;
+function leer(){try{let x=JSON.parse(localStorage.getItem("AsistenteFitDatos"));return x?{...structuredClone(base),...x,perfil:{...base.perfil,...x.perfil}}:structuredClone(base)}catch(e){return structuredClone(base)}}
+function guardar(){localStorage.setItem("AsistenteFitDatos",JSON.stringify(datos));dibujar()}
+function asegurarDia(){if(datos.pasos.fecha!==hoy())datos.pasos={fecha:hoy(),cantidad:0}}
+function ir(p){document.querySelectorAll(".page").forEach(x=>x.classList.toggle("active",x.id===p));document.querySelectorAll("nav button").forEach(x=>x.classList.toggle("active",x.dataset.p===p));window.scrollTo(0,0);dibujar()}
+function fmt(x,d=0){return (Number(x)||0).toFixed(d).replace(".",",")}
+function seguro(x){return String(x).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+function comidasDia(d=hoy()){return datos.comidas.filter(x=>x.fecha===d)}
+function ejerciciosDia(d=hoy()){return datos.ejercicios.filter(x=>x.fecha===d)}
+function sumaComidas(a){return a.reduce((s,x)=>({k:s.k+x.k,p:s.p+x.p,c:s.c+x.c,g:s.g+x.g}),{k:0,p:0,c:0,g:0})}
+function distancia(){return datos.pasos.cantidad*(Number(datos.perfil.largoPaso)||75)/100000}
+function gastoPasos(){return datos.pasos.cantidad*(Number(datos.perfil.peso)||70)*.0005}
+function dibujar(){
+asegurarDia();
+let m=sumaComidas(comidasDia()),e=ejerciciosDia(),min=e.reduce((s,x)=>s+x.min,0),burn=e.reduce((s,x)=>s+x.kcal,0),meta=Number(datos.perfil.metaCalorias)||1900;
+$("fechaHoy").textContent=hoy();$("kcalHoy").textContent=fmt(m.k)+" kcal";$("metaKcal").textContent="Meta "+meta+" kcal";$("barraKcal").style.width=Math.min(100,m.k/meta*100)+"%";
+$("protHoy").textContent=fmt(m.p,1)+" g";$("pasosHoy").textContent=fmt(datos.pasos.cantidad);$("kmHoy").textContent=fmt(distancia(),2)+" km";$("minHoy").textContent=min+" min";$("gastoHoy").textContent=fmt(burn+gastoPasos())+" kcal estimadas";
+$("macrosHoy").innerHTML=`Proteína <b>${fmt(m.p,1)} g</b> · Carbohidratos <b>${fmt(m.c,1)} g</b> · Grasas <b>${fmt(m.g,1)} g</b>`;
+$("contadorPasos").textContent=fmt(datos.pasos.cantidad);$("distancia").textContent=fmt(distancia(),2)+" km";$("calPasos").textContent=fmt(gastoPasos())+" kcal";
+$("listaComidas").innerHTML=listaComidas();$("listaEjercicios").innerHTML=listaEjercicios();
+$("pesoActual").textContent=fmt(datos.perfil.peso,1)+" kg";$("pesoObjetivo").textContent=fmt(datos.perfil.metaPeso,1)+" kg";
+$("historialPeso").innerHTML=datos.pesos.slice().reverse().slice(0,30).map(x=>`<div class=item>${x.fecha}<b>${fmt(x.kg,1)} kg</b></div>`).join("")||"Sin pesajes.";
+$("historialGlucosa").innerHTML=datos.glucosas.slice().reverse().slice(0,30).map(x=>`<div class=item><span>${x.fecha}<br><small>${seguro(x.momento)} ${seguro(x.nota)}</small></span><b>${x.valor} mg/dL</b></div>`).join("")||"Sin mediciones.";
+calendario();informes()
+}
+function listaComidas(){return comidasDia().slice().reverse().map(x=>`<div class=item><span><b>${seguro(x.nombre)}</b><br>${seguro(x.texto)}<br><small>P ${fmt(x.p,1)} · C ${fmt(x.c,1)} · G ${fmt(x.g,1)}</small></span><span><b>${fmt(x.k)} kcal</b><br><button onclick="eliminar('comidas','${x.id}')">Quitar</button></span></div>`).join("")||"Sin comidas registradas."}
+function listaEjercicios(){return ejerciciosDia().slice().reverse().map(x=>`<div class=item><span><b>${seguro(x.nombre)}</b><br>${x.min} min · ${seguro(x.nota)}</span><span>${fmt(x.kcal)} kcal<br><button onclick="eliminar('ejercicios','${x.id}')">Quitar</button></span></div>`).join("")||"Sin ejercicios registrados."}
+function eliminar(tipo,clave){datos[tipo]=datos[tipo].filter(x=>x.id!==clave);guardar()}
+const alimentos=[
+["huevo",143,12.6,.7,9.5,50,["huevo","huevos"]],
+["clara de huevo",52,10.9,.7,.2,33,["clara","claras"]],
+["pan",265,8.9,49,3.2,50,["pan","pan corriente"]],
+["marraqueta",270,9,54,1.5,100,["marraqueta","pan batido"]],
+["hallulla",300,9,48,8,90,["hallulla"]],
+["pan integral",247,13,41,4.2,40,["pan integral"]],
+["arroz cocido",130,2.7,28,.3,150,["arroz","arroz cocido"]],
+["fideos cocidos",157,5.8,30.9,.9,150,["fideos","tallarines","pasta"]],
+["avena",389,16.9,66.3,6.9,40,["avena"]],
+["papa cocida",87,1.9,20.1,.1,150,["papa","papas cocidas"]],
+["puré de papa",113,2,17,4,200,["pure","puré"]],
+["porotos cocidos",127,8.7,22.8,.5,150,["porotos"]],
+["lentejas cocidas",116,9,20,.4,150,["lentejas"]],
+["garbanzos",164,8.9,27.4,2.6,150,["garbanzos"]],
+["soya cocida",172,18.2,8.4,9,100,["soya","soja"]],
+["tofu",76,8.1,1.9,4.8,100,["tofu"]],
+["pechuga de pollo sin piel",165,31,0,3.6,150,["pechuga","pechuga de pollo","pollo sin piel"]],
+["pollo asado con piel",197,29.8,0,7.8,150,["pollo asado","pollo con piel"]],
+["trutro de pollo",220,26,0,12,150,["trutro","tuto","pierna de pollo"]],
+["ala de pollo",254,23,0,17,35,["ala","alita","alitas"]],
+["cuarto de pollo asado",200,27,0,10,250,["cuarto de pollo","1/4 de pollo","un cuarto de pollo"]],
+["pavo",135,29,0,1.5,120,["pavo"]],
+["vacuno magro",217,30,0,12,120,["vacuno","carne de vacuno","posta"]],
+["carne molida",250,26,0,15,100,["carne molida"]],
+["cerdo",196,29,0,8,120,["cerdo","chancho"]],
+["longaniza",330,16,2,28,70,["longaniza","longanizas"]],
+["longaniza vegetal casera",190,16,10,9,80,["longaniza vegetal","longa vegetal"]],
+["mortadela",311,12,3,27,30,["mortadela"]],
+["atún al agua drenado",116,26,0,1,100,["atun al agua","atún al agua","atun","atún"]],
+["atún en aceite drenado",198,29,0,8,100,["atun en aceite","atún en aceite"]],
+["salmón",206,22,0,12,120,["salmon","salmón"]],
+["jurel",180,24,0,9,100,["jurel"]],
+["merluza",90,18,0,2,150,["merluza"]],
+["leche entera",61,3.2,4.8,3.3,200,["leche"]],
+["yogur natural",61,3.5,4.7,3.3,125,["yogur","yogurt"]],
+["queso",350,23,2,28,30,["queso"]],
+["mantequilla",717,.9,.1,81,10,["mantequilla"]],
+["margarina",717,.2,.7,80,10,["margarina"]],
+["aceite",884,0,0,100,10,["aceite"]],
+["mayonesa",680,1,.6,75,15,["mayonesa"]],
+["palta",160,2,8.5,14.7,70,["palta","aguacate"]],
+["tomate",18,.9,3.9,.2,100,["tomate"]],
+["lechuga",15,1.4,2.9,.2,40,["lechuga"]],
+["pepino",15,.7,3.6,.1,100,["pepino"]],
+["zanahoria",41,.9,9.6,.2,60,["zanahoria"]],
+["cebolla",40,1.1,9.3,.1,50,["cebolla"]],
+["brócoli",35,2.4,7.2,.4,100,["brocoli","brócoli"]],
+["choclo",96,3.4,21,.8,100,["choclo","maiz"]],
+["manzana",52,.3,13.8,.2,150,["manzana"]],
+["plátano",89,1.1,22.8,.3,120,["platano","plátano","banana"]],
+["naranja",47,.9,11.8,.1,130,["naranja"]],
+["pera",57,.4,15.2,.1,160,["pera"]],
+["uvas",69,.7,18.1,.2,100,["uva","uvas"]],
+["frutilla",32,.7,7.7,.3,100,["frutilla","frutillas"]],
+["maní",567,25.8,16.1,49.2,30,["mani","maní"]],
+["nueces",654,15.2,13.7,65.2,30,["nuez","nueces"]],
+["azúcar",387,0,100,0,5,["azucar","azúcar"]],
+["miel",304,.3,82.4,0,15,["miel"]],
+["empanada de pino",260,10,28,12,180,["empanada","empanada de pino"]],
+["sopaipilla",320,6,42,14,60,["sopaipilla"]],
+["humita",150,4,25,4,180,["humita"]],
+["pastel de choclo",160,7,19,6,300,["pastel de choclo"]],
+["café negro",2,.1,0,0,200,["cafe","café"]],
+["jugo envasado",45,.1,11,0,200,["jugo","néctar","nectar"]],
+["bebida normal",42,0,10.6,0,200,["bebida normal","gaseosa"]],
+["bebida zero",1,0,0,0,200,["bebida zero","bebida light"]],
+["cerveza",43,.5,3.6,0,330,["cerveza"]]
+];
+function normal(s){return String(s).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/½/g," media ").replace(/¼/g," 1/4 ").replace(/\s+/g," ").trim()}
+function listaAlimentos(){return alimentos.concat(datos.propios.map(x=>[x.nombre,x.k,x.p,x.c,x.g,100,[x.nombre]]))}
+function separar(texto){return texto.replace(/\n/g,",").replace(/\s+y\s+/gi,",").split(/[,;+]/).map(x=>x.trim()).filter(Boolean)}
+function gramos(texto,a){
+let s=normal(texto),g=a[5],m=s.match(/(\d+(?:[.,]\d+)?)\s*(kg|g|gr|gramos?)\b/);
+if(m)return Number(m[1].replace(",","."))*(m[2]==="kg"?1000:1);
+let q=1,nu=s.match(/\b(\d+(?:[.,]\d+)?)\s*(huevos?|unidades?|rebanadas?|rodajas?|lonjas?|tutos?|trutros?|piernas?|alas?)\b/);
+if(nu)q=Number(nu[1].replace(",","."));else{let w=s.match(/\b(dos|tres|cuatro|cinco|seis|una|un|uno)\b/);if(w)q=({dos:2,tres:3,cuatro:4,cinco:5,seis:6,una:1,un:1,uno:1})[w[1]]}
+if(/\b(media|medio|mitad|1\/2)\b/.test(s))q=.5;
+if(/\b(cuarto|1\/4)\b/.test(s))q=.25;
+if(/\b(cucharada|cucharadas)\b/.test(s))return q*(a[0]==="aceite"?10:15);
+if(/\b(cucharadita|cucharaditas)\b/.test(s))return q*5;
+if(/\b(taza|tazas)\b/.test(s))return q*240;
+if(/\b(plato|platos)\b/.test(s))return q*250;
+if(/\b(rebanada|rodaja|lonja|loncha)\b/.test(s))return q*30;
+if(/\b(tuto|trutro|pierna)\b/.test(s))return q*150;
+if(/\b(ala|alita)\b/.test(s))return q*35;
+if(s.includes("1/4 de pollo")||s.includes("cuarto de pollo"))return 250;
+if(a[0].includes("huevo"))return q*50;
+return q*g
+}
+function calcularComida(){
+let total={k:0,p:0,c:0,g:0},lineas=[],no=[];
+let lista=listaAlimentos().sort((a,b)=>Math.max(...b[6].map(x=>normal(x).length))-Math.max(...a[6].map(x=>normal(x).length)));
+for(let parte of separar($("textoComida").value)){
+let s=normal(parte),a=lista.find(x=>x[6].some(alias=>s.includes(normal(alias))));
+if(!a){no.push(parte);continue}
+let gr=gramos(parte,a),fac=gr/100,v={nombre:a[0],gr,k:a[1]*fac,p:a[2]*fac,c:a[3]*fac,g:a[4]*fac};
+lineas.push(v);["k","p","c","g"].forEach(k=>total[k]+=v[k])
+}
+pendiente={total,lineas,no};
+$("resultadoComida").innerHTML=lineas.map(x=>`<div class=item><span>${seguro(x.nombre)} · ${fmt(x.gr)} g<br><small>P ${fmt(x.p,1)} · C ${fmt(x.c,1)} · G ${fmt(x.g,1)}</small></span><b>${fmt(x.k)} kcal</b></div>`).join("")+
+(no.length?`<p class=notice>No reconocidos: ${no.map(seguro).join(", ")}. No se han sumado.</p>`:"")+
+`<hr><b>Total: ${fmt(total.k)} kcal</b><br>Proteína ${fmt(total.p,1)} g · Carbohidratos ${fmt(total.c,1)} g · Grasas ${fmt(total.g,1)} g`;
+$("guardarComida").disabled=!lineas.length
+}
+function guardarComida(){
+if(!pendiente||!pendiente.lineas.length)return;
+let t=pendiente.total;datos.comidas.push({id:id(),fecha:hoy(),nombre:$("nombreComida").value||"Comida",texto:$("textoComida").value,k:t.k,p:t.p,c:t.c,g:t.g});
+$("textoComida").value="";$("nombreComida").value="";$("resultadoComida").innerHTML="";$("guardarComida").disabled=true;pendiente=null;guardar()
+}
+function buscarAlimentos(){let q=normal($("buscarAlimento").value),a=listaAlimentos().filter(x=>normal(x[0]).includes(q)||x[6].some(y=>normal(y).includes(q))).slice(0,20);$("resultadosBusqueda").innerHTML=a.map(x=>`<div class=item>${seguro(x[0])}<b>${x[1]} kcal/100 g</b></div>`).join("")}
+function agregarAlimento(){
+let nombre=$("nuevoNombre").value.trim();if(!nombre||$("nuevoK").value===""){alert("Completa nombre y calorías.");return}
+datos.propios.push({nombre,k:Number($("nuevoK").value),p:Number($("nuevoP").value)||0,c:Number($("nuevoC").value)||0,g:Number($("nuevoG").value)||0});
+["nuevoNombre","nuevoK","nuevoP","nuevoC","nuevoG"].forEach(x=>$(x).value="");guardar();alert("Alimento agregado.")
+}
+const nombresEj={3.3:"Caminata tranquila",4.8:"Caminata rápida",7.5:"Trote / bicicleta",9.8:"Correr",4.5:"Fuerza / pesas",6.5:"Natación / trekking",8.8:"Escaleras",5.5:"Baile / elíptica",2.5:"Yoga"};
+function caloriasEj(met,min,intensidad){return met*3.5*(Number(datos.perfil.peso)||70)/200*min*intensidad}
+function guardarEjercicio(){
+let min=Number($("minutosEjercicio").value),met=Number($("tipoEjercicio").value);
+if(min<=0){alert("Indica los minutos.");return}
+datos.ejercicios.push({id:id(),fecha:hoy(),nombre:nombresEj[met]||"Ejercicio",min,kcal:caloriasEj(met,min,Number($("intensidad").value)),nota:$("notaEjercicio").value});
+$("minutosEjercicio").value="";$("notaEjercicio").value="";guardar()
+}
+$("minutosEjercicio").addEventListener("input",()=>{let m=Number($("minutosEjercicio").value);$("calculoEjercicio").textContent=m>0?"Gasto aproximado: "+fmt(caloriasEj(Number($("tipoEjercicio").value),m,Number($("intensidad").value)))+" kcal":""});
+$("tipoEjercicio").addEventListener("change",()=> $("minutosEjercicio").dispatchEvent(new Event("input")));
+$("intensidad").addEventListener("change",()=> $("minutosEjercicio").dispatchEvent(new Event("input")));
+function agregarPasos(){let v=Math.floor(Number($("pasosManuales").value));if(v>0){datos.pasos.cantidad+=v;$("pasosManuales").value="";guardar()}}
+function reiniciarPasos(){if(confirm("¿Reiniciar los pasos de hoy?")){datos.pasos.cantidad=0;guardar()}}
+async function activarSensor(){
+if(!("DeviceMotionEvent"in window)){alert("Sensor no disponible. Ingresa los pasos manualmente.");return}
+try{if(typeof DeviceMotionEvent.requestPermission==="function"){let p=await DeviceMotionEvent.requestPermission();if(p!=="granted")throw 0}
+sensorActivo=true;ultimoPaso=0;window.addEventListener("devicemotion",detectarPaso);alert("Sensor activado. Mantén la página abierta.");}
+catch(e){alert("No se pudo activar el sensor. Usa el registro manual.")}
+}
+function detectarPaso(e){
+if(!sensorActivo||!e.accelerationIncludingGravity)return;
+let a=e.accelerationIncludingGravity,m=Math.sqrt((a.x||0)**2+(a.y||0)**2+(a.z||0)**2),t=Date.now();
+if(Math.abs(m-ultimaAceleracion)>2.2&&t-ultimoPaso>330){datos.pasos.cantidad++;ultimoPaso=t;localStorage.setItem("AsistenteFitDatos",JSON.stringify(datos));dibujar()}
+ultimaAceleracion=m
+}
+function pausarSensor(){sensorActivo=false;window.removeEventListener("devicemotion",detectarPaso)}
+function guardarPeso(){let kg=Number($("pesoNuevo").value);if(kg<=0)return alert("Peso inválido");datos.pesos.push({fecha:hoy(),kg});datos.perfil.peso=kg;$("pesoNuevo").value="";guardar()}
+function guardarGlucosa(){let v=Number($("glucosaValor").value);if(v<=0)return alert("Valor inválido");datos.glucosas.push({fecha:hoy(),valor:v,momento:$("glucosaMomento").value,nota:$("glucosaNota").value});$("glucosaValor").value="";$("glucosaNota").value="";guardar()}
+function cargarPerfil(){let p=datos.perfil;let m={edad:"edad",sexo:"sexo",altura:"altura",pesoPerfil:"peso",metaPeso:"metaPeso",metaCalorias:"metaCalorias",metaProteina:"metaProteina",metaPasos:"metaPasos",largoPaso:"largoPaso"};Object.entries(m).forEach(([a,b])=>$(a).value=p[b])}
+function guardarPerfil(){let m={edad:"edad",sexo:"sexo",altura:"altura",pesoPerfil:"peso",metaPeso:"metaPeso",metaCalorias:"metaCalorias",metaProteina:"metaProteina",metaPasos:"metaPasos",largoPaso:"largoPaso"};Object.entries(m).forEach(([a,b])=>datos.perfil[b]=$(a).value);["edad","altura","peso","metaPeso","metaCalorias","metaProteina","metaPasos","largoPaso"].forEach(k=>datos.perfil[k]=Number(datos.perfil[k])||0);guardar();alert("Perfil guardado")}
+function fechaKey(d){return d.toLocaleDateString("en-CA")}
+function datosDia(d){let m=sumaComidas(comidasDia(d)),e=ejerciciosDia(d);return{...m,ej:e.reduce((s,x)=>s+x.min,0),burn:e.reduce((s,x)=>s+x.kcal,0),pasos:d===hoy()?datos.pasos.cantidad:0,hay:comidasDia(d).length+e.length+datos.pesos.filter(x=>x.fecha===d).length+datos.glucosas.filter(x=>x.fecha===d).length>0}}
+function calendario(){
+let y=mesVista.getFullYear(),m=mesVista.getMonth(),primero=new Date(y,m,1),offset=(primero.getDay()+6)%7,dias=new Date(y,m+1,0).getDate();
+$("tituloMes").textContent=mesVista.toLocaleDateString("es-CL",{month:"long",year:"numeric"});
+let h=["L","M","X","J","V","S","D"].map(x=>`<div class=muted style="text-align:center">${x}</div>`).join("");
+for(let i=0;i<offset;i++)h+='<div class="day empty"></div>';
+for(let d=1;d<=dias;d++){let key=fechaKey(new Date(y,m,d)),v=datosDia(key);h+=`<button class="day ${key===diaVista?"selected":""}" onclick="seleccionarDia('${key}')">${d}<span class=dot>${v.hay?"●":""}</span></button>`}
+$("cuadricula").innerHTML=h;let v=datosDia(diaVista);$("diaSeleccionado").textContent="Día: "+diaVista;
+$("detalleDia").innerHTML=`Calorías: <b>${fmt(v.k)} kcal</b><br>Proteína: ${fmt(v.p,1)} g · Carbohidratos: ${fmt(v.c,1)} g · Grasas: ${fmt(v.g,1)} g<br>Pasos: ${diaVista===hoy()?fmt(v.pasos):"No guardados para ese día"}<br>Ejercicio: ${v.e} min · ${fmt(v.burn)} kcal estimadas<br>Comidas: ${comidasDia(diaVista).length} · Mediciones de glicemia: ${datos.glucosas.filter(x=>x.fecha===diaVista).length}`
+}
+function seleccionarDia(d){diaVista=d;calendario()}
+function cambiarMes(n){mesVista.setMonth(mesVista.getMonth()+n);calendario()}
+function rango(inicio,fin){let a=[];for(let d=new Date(inicio);d<=fin;d.setDate(d.getDate()+1))a.push(fechaKey(new Date(d)));return a}
+function analizar(dias){
+let a=dias.map(datosDia).filter(x=>x.hay);if(!a.length)return "<p>No hay días con registros suficientes.</p>";
+let promedio=k=>a.reduce((s,x)=>s+x[k],0)/a.length,meta=Number(datos.perfil.metaCalorias)||1900,prot=Number(datos.perfil.metaProteina)||100;
+let fuertes=a.filter(x=>x.k>0&&x.k<=meta&&x.p>=prot*.8&&(x.e>0||x.pasos>=Number(datos.perfil.metaPasos)*.5));
+let revisar=a.filter(x=>x.k>meta*1.15||x.p<prot*.5);
+return `<p>${a.length} día(s) con datos.</p><div class=grid><div class=stat><small>Calorías promedio</small><strong>${fmt(promedio("k"))}</strong></div><div class=stat><small>Proteína promedio</small><strong>${fmt(promedio("p"),1)} g</strong></div><div class=stat><small>Ejercicio promedio</small><strong>${fmt(promedio("ej"))} min</strong></div><div class=stat><small>Pasos promedio registrados</small><strong>${fmt(promedio("pasos"))}</strong></div></div><p><b>Días fuertes:</b> ${fuertes.length}</p><p><b>Días para revisar:</b> ${revisar.length}</p><p class=muted>Los días sin registros se excluyen. Los datos de pasos históricos no están disponibles en esta primera versión.</p>`
+}
+function lunesDeSemana(offset){let d=new Date();d.setDate(d.getDate()-((d.getDay()+6)%7)+offset*7);d.setHours(0,0,0,0);return d}
+function informes(){
+let s=lunesDeSemana(semanaOffset),fin=new Date(s);fin.setDate(fin.getDate()+6);$("informeSemana").innerHTML=analizar(rango(s,fin));
+let m=new Date();m.setMonth(m.getMonth()+mesInformeOffset);let ini=new Date(m.getFullYear(),m.getMonth(),1),end=new Date(m.getFullYear(),m.getMonth()+1,0);
+$("informeMes").innerHTML=analizar(rango(ini,end));
+let a=rango(s,fin).map(d=>({d,...datosDia(d)})).filter(x=>x.hay).sort((x,y)=>(y.e+y.pasos/1000)-(x.e+x.pasos/1000));
+$("analisisDias").innerHTML=a.length?`Mayor actividad registrada: <b>${a[0].d}</b> (${a[0].e} min).<br>Menor actividad entre días registrados: <b>${a[a.length-1].d}</b> (${a[a.length-1].e} min).`:"Faltan datos para comparar los días."
+}
+function moverSemana(n){semanaOffset=n===0?0:semanaOffset+n;informes()}
+function moverInformeMes(n){mesInformeOffset=n===0?0:mesInformeOffset+n;informes()}
+function exportar(){let blob=new Blob([JSON.stringify(datos,null,2)],{type:"application/json"}),u=URL.createObjectURL(blob),a=document.createElement("a");a.href=u;a.download="AsistenteFit-respaldo-"+hoy()+".json";a.click();URL.revokeObjectURL(u)}
+function importar(){let file=$("archivoImportar").files[0];if(!file)return alert("Selecciona un archivo.");let r=new FileReader();r.onload=()=>{try{let x=JSON.parse(r.result);if(!x.perfil||!Array.isArray(x.comidas))throw 0;datos={...structuredClone(base),...x,perfil:{...base.perfil,...x.perfil}};guardar();cargarPerfil();alert("Respaldo restaurado")}catch(e){alert("El archivo no es un respaldo válido")}};r.readAsText(file)}
+function borrarTodo(){if(confirm("¿Borrar todos los datos? No se puede deshacer.")){datos=structuredClone(base);guardar();cargarPerfil()}}
+cargarPerfil();dibujar();
+</script>
+
+<script>
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("./sw.js")
+      .then(() => console.log("AsistenteFit preparado"))
+      .catch(error => console.error("Error:", error));
+  });
+}
+</script>
+</body>
+</html>
